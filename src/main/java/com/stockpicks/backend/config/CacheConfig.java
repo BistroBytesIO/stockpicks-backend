@@ -12,6 +12,6 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("stockQuotes", "stockCandles", "symbolSearch");
+        return new ConcurrentMapCacheManager("stockQuotes", "stockCandles", "symbolSearch", "alphaVantageDaily");
     }
 }

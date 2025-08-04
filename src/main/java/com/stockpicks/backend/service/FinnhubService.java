@@ -1,5 +1,6 @@
 package com.stockpicks.backend.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -8,10 +9,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +25,9 @@ public class FinnhubService {
 
     @Value("${finnhub.api.base.url}")
     private String baseUrl;
+    
+    @Autowired
+    private AlphaVantageService alphaVantageService;
 
     public FinnhubService() {
         this.restTemplate = new RestTemplate();
@@ -56,48 +57,21 @@ public class FinnhubService {
         }
     }
 
-    @Cacheable(value = "stockCandles", key = "#symbol + '_' + #period")
     public Map<String, Object> getStockCandles(String symbol, String period) {
         try {
-            // Calculate time range based on period
-            long toTimestamp = Instant.now().getEpochSecond();
-            long fromTimestamp;
+            logger.info("Using Alpha Vantage for candle data - symbol: {} with period: {}", symbol, period);
             
-            switch (period.toUpperCase()) {
-                case "1D":
-                    fromTimestamp = Instant.now().minus(1, ChronoUnit.DAYS).getEpochSecond();
-                    break;
-                case "1W":
-                    fromTimestamp = Instant.now().minus(7, ChronoUnit.DAYS).getEpochSecond();
-                    break;
-                case "1M":
-                    fromTimestamp = Instant.now().minus(30, ChronoUnit.DAYS).getEpochSecond();
-                    break;
-                case "3M":
-                    fromTimestamp = Instant.now().minus(90, ChronoUnit.DAYS).getEpochSecond();
-                    break;
-                default:
-                    fromTimestamp = Instant.now().minus(30, ChronoUnit.DAYS).getEpochSecond();
-            }
-
-            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/stock/candle")
-                    .queryParam("symbol", symbol)
-                    .queryParam("resolution", "D") // Daily resolution
-                    .queryParam("from", fromTimestamp)
-                    .queryParam("to", toTimestamp)
-                    .queryParam("token", apiKey)
-                    .toUriString();
-
-            logger.info("Fetching candle data for symbol: {} with period: {}", symbol, period);
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            // Use Alpha Vantage service for OHLC candlestick data
+            Map<String, Object> candleData = alphaVantageService.getProcessedCandleData(symbol, period);
             
-            if (response != null && "ok".equals(response.get("s"))) {
-                logger.info("Successfully fetched candle data for {}", symbol);
-                return response;
-            } else {
-                logger.warn("No candle data received for symbol: {} (status: {})", symbol, response != null ? response.get("s") : "null");
+            if (candleData.isEmpty()) {
+                logger.warn("No candle data received from Alpha Vantage for symbol: {}", symbol);
                 return new HashMap<>();
             }
+            
+            logger.info("Successfully fetched candle data from Alpha Vantage for {}", symbol);
+            return candleData;
+            
         } catch (Exception e) {
             logger.error("Error fetching candle data for symbol {}: {}", symbol, e.getMessage());
             return new HashMap<>();
