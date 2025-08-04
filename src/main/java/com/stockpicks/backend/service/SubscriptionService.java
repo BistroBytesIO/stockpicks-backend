@@ -110,6 +110,70 @@ public class SubscriptionService {
         userSubscriptionRepository.save(userSubscription);
     }
     
+    public UserSubscription createOrUpdateSubscriptionFromStripe(String stripeSubscriptionId, SubscriptionStatus status) throws StripeException {
+        System.out.println("Creating or updating subscription from Stripe: " + stripeSubscriptionId + " with status: " + status);
+        
+        // First try to find existing subscription
+        UserSubscription existingSubscription = userSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
+                .orElse(null);
+        
+        if (existingSubscription != null) {
+            System.out.println("Found existing subscription, updating status");
+            existingSubscription.setStatus(status);
+            existingSubscription.setUpdatedAt(LocalDateTime.now());
+            return userSubscriptionRepository.save(existingSubscription);
+        }
+        
+        // Subscription doesn't exist, we need to create it
+        System.out.println("Subscription not found in DB, creating new subscription record");
+        
+        // Get subscription details from Stripe
+        Subscription stripeSubscription = stripeService.retrieveSubscription(stripeSubscriptionId);
+        System.out.println("Retrieved Stripe subscription: " + stripeSubscription.getId());
+        
+        // Get customer email from Stripe
+        String customerEmail = stripeService.getCustomerEmailById(stripeSubscription.getCustomer());
+        System.out.println("Customer email: " + customerEmail);
+        
+        // Find user by email
+        User user = userService.findByEmail(customerEmail);
+        if (user == null) {
+            throw new RuntimeException("User not found for email: " + customerEmail);
+        }
+        System.out.println("Found user: " + user.getEmail());
+        
+        // Get the subscription plan by matching the Stripe price ID
+        String stripePriceId = stripeSubscription.getItems().getData().get(0).getPrice().getId();
+        System.out.println("Stripe Price ID: " + stripePriceId);
+        
+        SubscriptionPlan plan = subscriptionPlanRepository.findByStripePriceId(stripePriceId)
+                .orElseThrow(() -> new RuntimeException("Subscription plan not found for Stripe price ID: " + stripePriceId));
+        System.out.println("Found plan: " + plan.getName());
+        
+        // Create user subscription record
+        UserSubscription userSubscription = new UserSubscription();
+        userSubscription.setUser(user);
+        userSubscription.setPlan(plan);
+        userSubscription.setStripeSubscriptionId(stripeSubscription.getId());
+        userSubscription.setStatus(status);
+        
+        if (stripeSubscription.getCurrentPeriodStart() != null) {
+            userSubscription.setCurrentPeriodStart(
+                    LocalDateTime.ofInstant(Instant.ofEpochSecond(stripeSubscription.getCurrentPeriodStart()), ZoneId.systemDefault())
+            );
+        }
+        
+        if (stripeSubscription.getCurrentPeriodEnd() != null) {
+            userSubscription.setCurrentPeriodEnd(
+                    LocalDateTime.ofInstant(Instant.ofEpochSecond(stripeSubscription.getCurrentPeriodEnd()), ZoneId.systemDefault())
+            );
+        }
+        
+        UserSubscription savedSubscription = userSubscriptionRepository.save(userSubscription);
+        System.out.println("Successfully created subscription with ID: " + savedSubscription.getId());
+        return savedSubscription;
+    }
+    
     public UserSubscription createSubscriptionFromCheckout(String email, Long planId, String stripeSubscriptionId) throws StripeException {
         System.out.println("Creating subscription from checkout - Email: " + email + ", PlanId: " + planId + ", StripeSubId: " + stripeSubscriptionId);
         

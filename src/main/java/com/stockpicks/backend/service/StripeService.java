@@ -67,6 +67,15 @@ public class StripeService {
         return Subscription.retrieve(subscriptionId);
     }
     
+    public Customer retrieveCustomer(String customerId) throws StripeException {
+        return Customer.retrieve(customerId);
+    }
+    
+    public String getCustomerEmailById(String customerId) throws StripeException {
+        Customer customer = retrieveCustomer(customerId);
+        return customer.getEmail();
+    }
+    
     public Session createCheckoutSession(String customerEmail, String priceId, Long planId) throws StripeException {
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)

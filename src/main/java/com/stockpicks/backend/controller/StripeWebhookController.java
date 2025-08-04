@@ -105,27 +105,51 @@ public class StripeWebhookController {
         Subscription subscription = (Subscription) event.getData().getObject();
         System.out.println("Subscription created: " + subscription.getId());
         
-        subscriptionService.updateSubscriptionStatus(
-            subscription.getId(), 
-            SubscriptionStatus.valueOf(subscription.getStatus().toUpperCase())
-        );
+        try {
+            subscriptionService.createOrUpdateSubscriptionFromStripe(
+                subscription.getId(), 
+                SubscriptionStatus.valueOf(subscription.getStatus().toUpperCase())
+            );
+            System.out.println("Successfully processed subscription created event");
+        } catch (Exception e) {
+            System.err.println("Error processing subscription created: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     private void handleSubscriptionUpdated(Event event) throws StripeException {
         Subscription subscription = (Subscription) event.getData().getObject();
         System.out.println("Subscription updated: " + subscription.getId());
         
-        subscriptionService.updateSubscriptionStatus(
-            subscription.getId(), 
-            SubscriptionStatus.valueOf(subscription.getStatus().toUpperCase())
-        );
+        try {
+            subscriptionService.createOrUpdateSubscriptionFromStripe(
+                subscription.getId(), 
+                SubscriptionStatus.valueOf(subscription.getStatus().toUpperCase())
+            );
+            System.out.println("Successfully processed subscription updated event");
+        } catch (Exception e) {
+            System.err.println("Error processing subscription updated: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     private void handleSubscriptionDeleted(Event event) throws StripeException {
         Subscription subscription = (Subscription) event.getData().getObject();
         System.out.println("Subscription deleted: " + subscription.getId());
         
-        subscriptionService.updateSubscriptionStatus(subscription.getId(), SubscriptionStatus.CANCELED);
+        try {
+            subscriptionService.createOrUpdateSubscriptionFromStripe(
+                subscription.getId(), 
+                SubscriptionStatus.CANCELED
+            );
+            System.out.println("Successfully processed subscription deleted event");
+        } catch (Exception e) {
+            System.err.println("Error processing subscription deleted: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     private void handleInvoicePaymentSucceeded(Event event) {
