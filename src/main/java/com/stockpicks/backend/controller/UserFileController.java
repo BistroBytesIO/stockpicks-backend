@@ -36,7 +36,7 @@ public class UserFileController {
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<Resource> downloadFile(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long id, Authentication authentication, @RequestParam(required = false) String token) {
         // Ensure user is authenticated
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).build();

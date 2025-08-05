@@ -210,7 +210,7 @@ public class AdminController {
     }
 
     @GetMapping("/files/{id}/download")
-    public ResponseEntity<Resource> downloadFile(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long id, Authentication authentication, @RequestParam(required = false) String token) {
         if (!isAdmin(authentication)) {
             return ResponseEntity.status(403).build();
         }

@@ -29,29 +29,6 @@ public class NewsService {
         return fetchNewsFromRSS("https://finance.yahoo.com/news/rssindex", "Top Stories");
     }
 
-    public List<NewsItem> getBonds() {
-        return fetchNewsFromRSS("https://feeds.finance.yahoo.com/rss/2.0/category-bonds", "Bonds");
-    }
-
-    public List<NewsItem> getCurrencies() {
-        return fetchNewsFromRSS("https://feeds.finance.yahoo.com/rss/2.0/category-currencies", "Currencies");
-    }
-
-    public List<NewsItem> getPersonalFinance() {
-        return fetchNewsFromRSS("https://feeds.finance.yahoo.com/rss/2.0/category-personal-finance", "Personal Finance");
-    }
-
-    public List<NewsItem> getStockMarket() {
-        return fetchNewsFromRSS("https://feeds.finance.yahoo.com/rss/2.0/category-stocks", "Stock Market");
-    }
-
-    public List<NewsItem> getEconomicNews() {
-        return fetchNewsFromRSS("https://feeds.finance.yahoo.com/rss/2.0/category-economic-news", "Economic News");
-    }
-
-    public List<NewsItem> getOptionsAndFutures() {
-        return fetchNewsFromRSS("https://feeds.finance.yahoo.com/rss/2.0/category-options", "Options & Futures");
-    }
 
     private List<NewsItem> fetchNewsFromRSS(String rssUrl, String category) {
         try {
@@ -92,7 +69,7 @@ public class NewsService {
             if (itemsObj instanceof List) {
                 List<Map<String, Object>> items = (List<Map<String, Object>>) itemsObj;
                 System.out.println("Found " + items.size() + " news items");
-                for (int i = 0; i < Math.min(10, items.size()); i++) {
+                for (int i = 0; i < Math.min(5, items.size()); i++) {
                     NewsItem newsItem = createNewsItem(items.get(i), category);
                     if (newsItem != null) {
                         newsItems.add(newsItem);
