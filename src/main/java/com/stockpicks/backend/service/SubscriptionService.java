@@ -10,6 +10,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -91,10 +92,33 @@ public class SubscriptionService {
         userSubscriptionRepository.save(userSubscription);
     }
 
+    @Transactional
     public UserSubscription getCurrentSubscription(String email) {
         User user = userService.findByEmail(email);
-        return userSubscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
-                .orElse(null);
+        
+        // Use the ordered query to get active subscriptions by most recent update
+        List<UserSubscription> activeSubscriptions = userSubscriptionRepository.findByUserAndStatusOrderByUpdatedAtDesc(user, SubscriptionStatus.ACTIVE);
+        
+        if (activeSubscriptions.isEmpty()) {
+            return null;
+        }
+        
+        // If there are multiple active subscriptions (which shouldn't happen after our fix),
+        // return the most recently updated one and log a warning
+        if (activeSubscriptions.size() > 1) {
+            System.err.println("WARNING: User " + email + " has " + activeSubscriptions.size() + " active subscriptions. Using the most recent one.");
+            
+            // Cancel all but the most recent active subscription
+            for (int i = 1; i < activeSubscriptions.size(); i++) {
+                UserSubscription oldSubscription = activeSubscriptions.get(i);
+                System.err.println("Automatically cancelling duplicate active subscription: " + oldSubscription.getStripeSubscriptionId());
+                oldSubscription.setStatus(SubscriptionStatus.CANCELED);
+                oldSubscription.setUpdatedAt(LocalDateTime.now());
+                userSubscriptionRepository.save(oldSubscription);
+            }
+        }
+        
+        return activeSubscriptions.get(0);
     }
 
     public boolean hasActiveSubscription(String email) {
@@ -110,15 +134,16 @@ public class SubscriptionService {
         userSubscriptionRepository.save(userSubscription);
     }
     
+    @Transactional
     public UserSubscription createOrUpdateSubscriptionFromStripe(String stripeSubscriptionId, SubscriptionStatus status) throws StripeException {
         System.out.println("Creating or updating subscription from Stripe: " + stripeSubscriptionId + " with status: " + status);
         
-        // First try to find existing subscription
+        // First try to find existing subscription by Stripe ID
         UserSubscription existingSubscription = userSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
                 .orElse(null);
         
         if (existingSubscription != null) {
-            System.out.println("Found existing subscription, updating status");
+            System.out.println("Found existing subscription, updating status from " + existingSubscription.getStatus() + " to " + status);
             existingSubscription.setStatus(status);
             existingSubscription.setUpdatedAt(LocalDateTime.now());
             return userSubscriptionRepository.save(existingSubscription);
@@ -141,6 +166,19 @@ public class SubscriptionService {
             throw new RuntimeException("User not found for email: " + customerEmail);
         }
         System.out.println("Found user: " + user.getEmail());
+        
+        // Check if user already has an active subscription to prevent duplicates
+        if (status == SubscriptionStatus.ACTIVE && userSubscriptionRepository.existsByUserAndStatus(user, SubscriptionStatus.ACTIVE)) {
+            System.out.println("User already has an active subscription, cancelling old active subscriptions");
+            // Find and cancel existing active subscriptions to prevent duplicates
+            UserSubscription existingActive = userSubscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE).orElse(null);
+            if (existingActive != null && !existingActive.getStripeSubscriptionId().equals(stripeSubscriptionId)) {
+                System.out.println("Cancelling existing active subscription: " + existingActive.getStripeSubscriptionId());
+                existingActive.setStatus(SubscriptionStatus.CANCELED);
+                existingActive.setUpdatedAt(LocalDateTime.now());
+                userSubscriptionRepository.save(existingActive);
+            }
+        }
         
         // Get the subscription plan by matching the Stripe price ID
         String stripePriceId = stripeSubscription.getItems().getData().get(0).getPrice().getId();
@@ -171,54 +209,6 @@ public class SubscriptionService {
         
         UserSubscription savedSubscription = userSubscriptionRepository.save(userSubscription);
         System.out.println("Successfully created subscription with ID: " + savedSubscription.getId());
-        return savedSubscription;
-    }
-    
-    public UserSubscription createSubscriptionFromCheckout(String email, Long planId, String stripeSubscriptionId) throws StripeException {
-        System.out.println("Creating subscription from checkout - Email: " + email + ", PlanId: " + planId + ", StripeSubId: " + stripeSubscriptionId);
-        
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            throw new RuntimeException("User not found: " + email);
-        }
-        System.out.println("Found user: " + user.getEmail());
-        
-        SubscriptionPlan plan = subscriptionPlanRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("Subscription plan not found: " + planId));
-        System.out.println("Found plan: " + plan.getName());
-
-        // Check if user already has an active subscription
-        if (userSubscriptionRepository.existsByUserAndStatus(user, SubscriptionStatus.ACTIVE)) {
-            System.out.println("User already has active subscription, skipping creation");
-            throw new RuntimeException("User already has an active subscription");
-        }
-
-        // Get the Stripe subscription details
-        System.out.println("Retrieving Stripe subscription: " + stripeSubscriptionId);
-        Subscription stripeSubscription = stripeService.retrieveSubscription(stripeSubscriptionId);
-        System.out.println("Retrieved Stripe subscription status: " + stripeSubscription.getStatus());
-
-        // Create user subscription record
-        UserSubscription userSubscription = new UserSubscription();
-        userSubscription.setUser(user);
-        userSubscription.setPlan(plan);
-        userSubscription.setStripeSubscriptionId(stripeSubscription.getId());
-        userSubscription.setStatus(SubscriptionStatus.valueOf(stripeSubscription.getStatus().toUpperCase()));
-        
-        if (stripeSubscription.getCurrentPeriodStart() != null) {
-            userSubscription.setCurrentPeriodStart(
-                    LocalDateTime.ofInstant(Instant.ofEpochSecond(stripeSubscription.getCurrentPeriodStart()), ZoneId.systemDefault())
-            );
-        }
-        
-        if (stripeSubscription.getCurrentPeriodEnd() != null) {
-            userSubscription.setCurrentPeriodEnd(
-                    LocalDateTime.ofInstant(Instant.ofEpochSecond(stripeSubscription.getCurrentPeriodEnd()), ZoneId.systemDefault())
-            );
-        }
-
-        UserSubscription savedSubscription = userSubscriptionRepository.save(userSubscription);
-        System.out.println("Successfully saved subscription with ID: " + savedSubscription.getId());
         return savedSubscription;
     }
 }

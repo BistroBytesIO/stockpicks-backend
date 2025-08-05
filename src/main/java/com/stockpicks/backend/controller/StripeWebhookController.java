@@ -85,9 +85,12 @@ public class StripeWebhookController {
                 System.out.println("Creating subscription for email: " + customerEmail + ", planId: " + planId);
                 
                 try {
-                    // Create the subscription in our database
-                    subscriptionService.createSubscriptionFromCheckout(customerEmail, planId, session.getSubscription());
-                    System.out.println("Successfully created subscription in database");
+                    // Use the unified method that handles duplicates properly
+                    subscriptionService.createOrUpdateSubscriptionFromStripe(
+                        session.getSubscription(), 
+                        SubscriptionStatus.ACTIVE
+                    );
+                    System.out.println("Successfully created/updated subscription in database");
                 } catch (Exception e) {
                     System.err.println("Error creating subscription from checkout: " + e.getMessage());
                     e.printStackTrace();
