@@ -123,7 +123,7 @@ public class SubscriptionController {
         UserSubscription subscription = subscriptionService.getCurrentSubscription(email);
         
         if (subscription == null) {
-            return ResponseEntity.ok().body("No active subscription found");
+            return ResponseEntity.ok().body(null);
         }
         
         // Get plan name using planId
