@@ -78,9 +78,19 @@ public class SubscriptionController {
             String email = authentication.getName();
             UserSubscription subscription = subscriptionService.createSubscription(email, request.getPlanId());
             
+            // Get plan name using planId
+            String planName = "Unknown Plan";
+            if (subscription.getPlanId() != null) {
+                SubscriptionPlan plan = subscriptionPlanRepository.findById(subscription.getPlanId())
+                        .orElse(null);
+                if (plan != null) {
+                    planName = plan.getName();
+                }
+            }
+            
             SubscriptionResponse response = new SubscriptionResponse(
                 subscription.getId(),
-                subscription.getPlan().getName(),
+                planName,
                 subscription.getStatus(),
                 subscription.getCurrentPeriodStart(),
                 subscription.getCurrentPeriodEnd()
@@ -116,9 +126,19 @@ public class SubscriptionController {
             return ResponseEntity.ok().body("No active subscription found");
         }
         
+        // Get plan name using planId
+        String planName = "Unknown Plan";
+        if (subscription.getPlanId() != null) {
+            SubscriptionPlan plan = subscriptionPlanRepository.findById(subscription.getPlanId())
+                    .orElse(null);
+            if (plan != null) {
+                planName = plan.getName();
+            }
+        }
+        
         SubscriptionResponse response = new SubscriptionResponse(
             subscription.getId(),
-            subscription.getPlan().getName(),
+            planName,
             subscription.getStatus(),
             subscription.getCurrentPeriodStart(),
             subscription.getCurrentPeriodEnd()
