@@ -17,6 +17,12 @@ public class NewsService {
     public NewsService() {
         this.restTemplate = new RestTemplate();
         this.xmlMapper = new XmlMapper();
+        
+        // Add User-Agent header to avoid blocking
+        this.restTemplate.getInterceptors().add((request, body, execution) -> {
+            request.getHeaders().add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            return execution.execute(request, body);
+        });
     }
 
     public List<NewsItem> getTopStories() {
@@ -49,36 +55,94 @@ public class NewsService {
 
     private List<NewsItem> fetchNewsFromRSS(String rssUrl, String category) {
         try {
+            System.out.println("Fetching RSS from: " + rssUrl);
             String rssXml = restTemplate.getForObject(rssUrl, String.class);
-            if (rssXml == null) {
+            if (rssXml == null || rssXml.trim().isEmpty()) {
+                System.err.println("Empty or null RSS content from: " + rssUrl);
                 return new ArrayList<>();
             }
 
+            System.out.println("RSS XML length: " + rssXml.length());
+
             // Parse RSS XML
             Map<String, Object> rssData = xmlMapper.readValue(rssXml, Map.class);
-            Map<String, Object> channel = (Map<String, Object>) ((Map<String, Object>) rssData.get("rss")).get("channel");
+            
+            // More robust navigation through RSS structure
+            Map<String, Object> rss = (Map<String, Object>) rssData.get("rss");
+            if (rss == null) {
+                System.err.println("No 'rss' element found in XML");
+                return new ArrayList<>();
+            }
+            
+            Map<String, Object> channel = (Map<String, Object>) rss.get("channel");
+            if (channel == null) {
+                System.err.println("No 'channel' element found in RSS");
+                return new ArrayList<>();
+            }
+            
             Object itemsObj = channel.get("item");
+            if (itemsObj == null) {
+                System.err.println("No 'item' elements found in channel");
+                return new ArrayList<>();
+            }
 
             List<NewsItem> newsItems = new ArrayList<>();
             
+            // Handle both single item and multiple items
             if (itemsObj instanceof List) {
                 List<Map<String, Object>> items = (List<Map<String, Object>>) itemsObj;
-                for (int i = 0; i < Math.min(5, items.size()); i++) {
-                    Map<String, Object> item = items.get(i);
-                    NewsItem newsItem = new NewsItem();
-                    newsItem.setTitle((String) item.get("title"));
-                    newsItem.setDescription((String) item.get("description"));
-                    newsItem.setLink((String) item.get("link"));
-                    newsItem.setPubDate((String) item.get("pubDate"));
-                    newsItem.setCategory(category);
+                System.out.println("Found " + items.size() + " news items");
+                for (int i = 0; i < Math.min(10, items.size()); i++) {
+                    NewsItem newsItem = createNewsItem(items.get(i), category);
+                    if (newsItem != null) {
+                        newsItems.add(newsItem);
+                    }
+                }
+            } else if (itemsObj instanceof Map) {
+                // Single item case
+                System.out.println("Found single news item");
+                NewsItem newsItem = createNewsItem((Map<String, Object>) itemsObj, category);
+                if (newsItem != null) {
                     newsItems.add(newsItem);
                 }
             }
 
+            System.out.println("Successfully parsed " + newsItems.size() + " news items for " + category);
             return newsItems;
         } catch (Exception e) {
             System.err.println("Error fetching news from " + rssUrl + ": " + e.getMessage());
+            e.printStackTrace();
             return new ArrayList<>();
+        }
+    }
+
+    private NewsItem createNewsItem(Map<String, Object> item, String category) {
+        try {
+            NewsItem newsItem = new NewsItem();
+            
+            // Extract title
+            Object titleObj = item.get("title");
+            newsItem.setTitle(titleObj != null ? titleObj.toString() : "No title");
+            
+            // Extract description
+            Object descObj = item.get("description");
+            newsItem.setDescription(descObj != null ? descObj.toString() : "No description");
+            
+            // Extract link
+            Object linkObj = item.get("link");
+            newsItem.setLink(linkObj != null ? linkObj.toString() : "");
+            
+            // Extract publication date
+            Object pubDateObj = item.get("pubDate");
+            newsItem.setPubDate(pubDateObj != null ? pubDateObj.toString() : "");
+            
+            newsItem.setCategory(category);
+            
+            // Only return item if it has at least a title
+            return (newsItem.getTitle() != null && !newsItem.getTitle().equals("No title")) ? newsItem : null;
+        } catch (Exception e) {
+            System.err.println("Error creating news item: " + e.getMessage());
+            return null;
         }
     }
 
