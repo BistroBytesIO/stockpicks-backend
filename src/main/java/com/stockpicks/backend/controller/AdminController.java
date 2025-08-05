@@ -116,8 +116,16 @@ public class AdminController {
     }
 
     private boolean isAdmin(Authentication authentication) {
-        // This should check if the user has admin role
-        // For now, we'll implement basic check
-        return authentication != null && authentication.isAuthenticated();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        // For now, we'll check if the authenticated user exists in admin table
+        try {
+            String email = authentication.getName();
+            return adminService.findByEmail(email).isPresent();
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

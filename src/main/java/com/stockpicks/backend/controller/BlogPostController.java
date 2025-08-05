@@ -4,6 +4,7 @@ import com.stockpicks.backend.dto.blog.BlogPostRequest;
 import com.stockpicks.backend.dto.blog.BlogPostResponse;
 import com.stockpicks.backend.entity.BlogPost;
 import com.stockpicks.backend.service.BlogPostService;
+import com.stockpicks.backend.service.AdminService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,9 @@ public class BlogPostController {
 
     @Autowired
     private BlogPostService blogPostService;
+
+    @Autowired
+    private AdminService adminService;
 
     @GetMapping("/posts")
     public ResponseEntity<List<BlogPostResponse>> getAllPublishedPosts() {
@@ -174,8 +178,16 @@ public class BlogPostController {
     }
 
     private boolean isAdmin(Authentication authentication) {
-        // This should check if the user has admin role
-        // For now, we'll implement basic check
-        return authentication != null && authentication.isAuthenticated();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        // Check if the authenticated user exists in admin table
+        try {
+            String email = authentication.getName();
+            return adminService.findByEmail(email).isPresent();
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
