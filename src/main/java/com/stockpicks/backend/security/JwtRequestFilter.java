@@ -1,6 +1,7 @@
 package com.stockpicks.backend.security;
 
 import com.stockpicks.backend.service.UserDetailsServiceImpl;
+import com.stockpicks.backend.service.AdminDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -20,6 +22,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
+
+    @Autowired
+    private AdminDetailsServiceImpl adminDetailsService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -45,10 +50,27 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         // Once we get the token validate it
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = null;
+            
+            // Try to load as admin first, then as regular user
+            try {
+                String role = jwtUtil.extractRole(jwtToken);
+                if ("ADMIN".equals(role)) {
+                    userDetails = this.adminDetailsService.loadUserByUsername(username);
+                } else {
+                    userDetails = this.userDetailsService.loadUserByUsername(username);
+                }
+            } catch (UsernameNotFoundException e) {
+                // If not found as admin, try as regular user
+                try {
+                    userDetails = this.userDetailsService.loadUserByUsername(username);
+                } catch (UsernameNotFoundException ex) {
+                    logger.warn("User not found: " + username);
+                }
+            }
 
             // if token is valid configure Spring Security to manually set authentication
-            if (jwtUtil.validateToken(jwtToken, userDetails)) {
+            if (userDetails != null && jwtUtil.validateToken(jwtToken, userDetails)) {
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = 
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 usernamePasswordAuthenticationToken
