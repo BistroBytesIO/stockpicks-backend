@@ -44,10 +44,33 @@ public class NewsService {
             // Parse RSS XML
             Map<String, Object> rssData = xmlMapper.readValue(rssXml, Map.class);
             
-            // More robust navigation through RSS structure
-            Map<String, Object> rss = (Map<String, Object>) rssData.get("rss");
+            // Debug: Print the actual structure of parsed XML
+            System.out.println("DEBUG: Parsed XML root keys: " + rssData.keySet());
+            System.out.println("DEBUG: Full parsed structure: " + rssData);
+            
+            // More robust navigation through RSS structure - handle namespace variations
+            Map<String, Object> rss = null;
+            
+            // Try different possible keys for the RSS root element
+            if (rssData.containsKey("rss")) {
+                rss = (Map<String, Object>) rssData.get("rss");
+            } else if (rssData.containsKey("channel")) {
+                // If RSS is the root and channel is direct child
+                Map<String, Object> tempRss = new HashMap<>();
+                tempRss.put("channel", rssData.get("channel"));
+                rss = tempRss;
+            } else {
+                // Check if the parsed data itself is the RSS content
+                if (rssData.containsKey("title") && rssData.containsKey("link")) {
+                    // This might be the channel data directly
+                    Map<String, Object> tempRss = new HashMap<>();
+                    tempRss.put("channel", rssData);
+                    rss = tempRss;
+                }
+            }
+            
             if (rss == null) {
-                System.err.println("No 'rss' element found in XML");
+                System.err.println("No 'rss' element found in XML. Available keys: " + rssData.keySet());
                 return new ArrayList<>();
             }
             

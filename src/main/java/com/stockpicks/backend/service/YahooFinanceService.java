@@ -44,6 +44,7 @@ public class YahooFinanceService {
         try {
             addHeaders(); // Ensure headers are set with the injected API key
             logger.info("Fetching Yahoo Finance chart data for symbol: {} with period: {}", symbol, period);
+            logger.info("DEBUG: API Key configured: {}, Base URL: {}", (apiKey != null && !apiKey.isEmpty()) ? "YES" : "NO", baseUrl);
             
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/stock/v3/get-chart")
                     .queryParam("interval", mapPeriodToInterval(period))
@@ -60,10 +61,16 @@ public class YahooFinanceService {
             
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             
+            // Debug: Log the actual response structure
+            logger.info("DEBUG: Yahoo Finance API response for {}: {}", symbol, response);
+            
             if (response == null) {
                 logger.warn("No response from Yahoo Finance for symbol: {}", symbol);
                 return createEmptyResponse();
             }
+            
+            // Debug: Log response keys and structure
+            logger.info("DEBUG: Response keys for {}: {}", symbol, response.keySet());
             
             return processYahooResponse(response, symbol, period);
             
@@ -75,18 +82,24 @@ public class YahooFinanceService {
 
     private Map<String, Object> processYahooResponse(Map<String, Object> response, String symbol, String period) {
         try {
+            logger.info("DEBUG: Processing Yahoo response for {}, response structure: {}", symbol, response);
+            
             // Navigate through Yahoo's response structure
             Map<String, Object> chart = (Map<String, Object>) response.get("chart");
             if (chart == null) {
-                logger.warn("No chart data in Yahoo response for symbol: {}", symbol);
+                logger.warn("No chart data in Yahoo response for symbol: {}. Available keys: {}", symbol, response.keySet());
                 return createEmptyResponse();
             }
             
+            logger.info("DEBUG: Chart data found for {}, chart keys: {}", symbol, chart.keySet());
+            
             List<Map<String, Object>> results = (List<Map<String, Object>>) chart.get("result");
             if (results == null || results.isEmpty()) {
-                logger.warn("No result data in Yahoo chart response for symbol: {}", symbol);
+                logger.warn("No result data in Yahoo chart response for symbol: {}. Chart contains: {}", symbol, chart);
                 return createEmptyResponse();
             }
+            
+            logger.info("DEBUG: Found {} results for {}", results.size(), symbol);
             
             Map<String, Object> result = results.get(0);
             
