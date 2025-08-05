@@ -1,6 +1,7 @@
 package com.stockpicks.backend.controller;
 
 import com.stockpicks.backend.dto.admin.AdminLoginRequest;
+import com.stockpicks.backend.dto.admin.AdminRegisterRequest;
 import com.stockpicks.backend.dto.admin.AdminResponse;
 import com.stockpicks.backend.entity.Admin;
 import com.stockpicks.backend.security.JwtUtil;
@@ -29,15 +30,48 @@ public class AdminController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody AdminRegisterRequest request) {
+        try {
+            Admin admin = adminService.createAdmin(
+                request.getEmail(),
+                request.getPassword(),
+                request.getFirstName(),
+                request.getLastName()
+            );
+
+            AdminResponse response = new AdminResponse(
+                admin.getId(),
+                admin.getEmail(),
+                admin.getFirstName(),
+                admin.getLastName(),
+                admin.isActive(),
+                admin.getRole(),
+                admin.getCreatedAt()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error creating admin: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody AdminLoginRequest request) {
         try {
+            System.out.println("Admin login attempt for email: " + request.getEmail());
+            
             Admin admin = adminService.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                    .orElseThrow(() -> new RuntimeException("Admin not found for email: " + request.getEmail()));
+
+            System.out.println("Found admin: " + admin.getEmail() + ", active: " + admin.isActive());
 
             if (!adminService.validatePassword(admin, request.getPassword())) {
+                System.out.println("Password validation failed for admin: " + request.getEmail());
                 return ResponseEntity.badRequest().body("Invalid email or password");
             }
+
+            System.out.println("Password validation successful for admin: " + request.getEmail());
 
             String token = jwtUtil.generateToken(admin.getEmail(), "ADMIN");
 
@@ -52,8 +86,11 @@ public class AdminController {
                 token
             );
 
+            System.out.println("Admin login successful for: " + request.getEmail());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            System.err.println("Admin login error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Invalid email or password");
         }
     }
