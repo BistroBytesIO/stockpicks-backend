@@ -101,9 +101,19 @@ public class NewsService {
             Object titleObj = item.get("title");
             newsItem.setTitle(titleObj != null ? titleObj.toString() : "No title");
             
-            // Extract description
-            Object descObj = item.get("description");
-            newsItem.setDescription(descObj != null ? descObj.toString() : "No description");
+            // Yahoo Finance RSS doesn't have description, use source as description
+            Object sourceObj = item.get("source");
+            String sourceText = "";
+            if (sourceObj instanceof Map) {
+                Map<String, Object> sourceMap = (Map<String, Object>) sourceObj;
+                Object urlObj = sourceMap.get("url");
+                if (urlObj != null) {
+                    sourceText = "Source: " + urlObj.toString();
+                }
+            } else if (sourceObj != null) {
+                sourceText = "Source: " + sourceObj.toString();
+            }
+            newsItem.setDescription(sourceText);
             
             // Extract link
             Object linkObj = item.get("link");
