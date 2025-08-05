@@ -120,7 +120,21 @@ public class YahooFinanceService {
             List<Double> highs = (List<Double>) quote.get("high");
             List<Double> lows = (List<Double>) quote.get("low");
             List<Double> closes = (List<Double>) quote.get("close");
-            List<Long> volumes = (List<Long>) quote.get("volume");
+            List<Object> volumeObjects = (List<Object>) quote.get("volume");
+            List<Long> volumes = new ArrayList<>();
+            if (volumeObjects != null) {
+                for (Object vol : volumeObjects) {
+                    if (vol instanceof Integer) {
+                        volumes.add(((Integer) vol).longValue());
+                    } else if (vol instanceof Long) {
+                        volumes.add((Long) vol);
+                    } else if (vol != null) {
+                        volumes.add(Long.valueOf(vol.toString()));
+                    } else {
+                        volumes.add(null);
+                    }
+                }
+            }
             
             // Validate all arrays have data
             if (opens == null || highs == null || lows == null || closes == null || volumes == null) {
