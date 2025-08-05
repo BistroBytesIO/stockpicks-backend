@@ -3,7 +3,7 @@ package com.stockpicks.backend.controller;
 import com.stockpicks.backend.entity.GoogleSheetsSync;
 import com.stockpicks.backend.entity.StockPick;
 import com.stockpicks.backend.enums.PickType;
-import com.stockpicks.backend.service.FinnhubService;
+import com.stockpicks.backend.service.YahooFinanceService;
 import com.stockpicks.backend.service.GoogleSheetsService;
 import com.stockpicks.backend.service.StockPickService;
 import com.stockpicks.backend.service.SubscriptionService;
@@ -32,7 +32,7 @@ public class StockPickController {
     private GoogleSheetsService googleSheetsService;
     
     @Autowired
-    private FinnhubService finnhubService;
+    private YahooFinanceService yahooFinanceService;
 
     @GetMapping
     public ResponseEntity<List<StockPick>> getAllStockPicks(Authentication authentication) {
@@ -174,7 +174,7 @@ public class StockPickController {
         }
         
         try {
-            var chartData = finnhubService.getChartData(symbol, period);
+            var chartData = yahooFinanceService.getChartData(symbol, period);
             return ResponseEntity.ok(chartData);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching chart data: " + e.getMessage());
@@ -188,7 +188,7 @@ public class StockPickController {
         }
         
         try {
-            var quote = finnhubService.getStockQuote(symbol);
+            var quote = yahooFinanceService.getStockQuote(symbol);
             return ResponseEntity.ok(quote);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching quote: " + e.getMessage());
@@ -209,7 +209,7 @@ public class StockPickController {
             
             for (String symbol : symbolArray) {
                 if (!symbol.trim().isEmpty()) {
-                    batchData.put(symbol.trim(), finnhubService.getChartData(symbol.trim(), period));
+                    batchData.put(symbol.trim(), yahooFinanceService.getChartData(symbol.trim(), period));
                 }
             }
             
