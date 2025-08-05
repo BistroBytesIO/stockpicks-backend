@@ -3,6 +3,7 @@ package com.stockpicks.backend.controller;
 import com.stockpicks.backend.dto.admin.AdminLoginRequest;
 import com.stockpicks.backend.dto.admin.AdminRegisterRequest;
 import com.stockpicks.backend.dto.admin.AdminResponse;
+import com.stockpicks.backend.dto.user.UserResponse;
 import com.stockpicks.backend.entity.Admin;
 import com.stockpicks.backend.security.JwtUtil;
 import com.stockpicks.backend.service.AdminService;
@@ -96,14 +97,14 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<?>> getAllUsers(Authentication authentication) {
+    public ResponseEntity<List<UserResponse>> getAllUsers(Authentication authentication) {
         // Verify admin authentication
         if (!isAdmin(authentication)) {
             return ResponseEntity.status(403).build();
         }
 
         try {
-            List<?> users = userService.getAllUsers();
+            List<UserResponse> users = userService.getAllUsers();
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
@@ -111,13 +112,13 @@ public class AdminController {
     }
 
     @GetMapping("/users/subscribers")
-    public ResponseEntity<List<?>> getSubscribedUsers(Authentication authentication) {
+    public ResponseEntity<List<UserResponse>> getSubscribedUsers(Authentication authentication) {
         if (!isAdmin(authentication)) {
             return ResponseEntity.status(403).build();
         }
 
         try {
-            List<?> subscribers = userService.getSubscribedUsers();
+            List<UserResponse> subscribers = userService.getSubscribedUsers();
             return ResponseEntity.ok(subscribers);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
@@ -125,13 +126,13 @@ public class AdminController {
     }
 
     @GetMapping("/users/non-subscribers")
-    public ResponseEntity<List<?>> getNonSubscribedUsers(Authentication authentication) {
+    public ResponseEntity<List<UserResponse>> getNonSubscribedUsers(Authentication authentication) {
         if (!isAdmin(authentication)) {
             return ResponseEntity.status(403).build();
         }
 
         try {
-            List<?> nonSubscribers = userService.getNonSubscribedUsers();
+            List<UserResponse> nonSubscribers = userService.getNonSubscribedUsers();
             return ResponseEntity.ok(nonSubscribers);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);

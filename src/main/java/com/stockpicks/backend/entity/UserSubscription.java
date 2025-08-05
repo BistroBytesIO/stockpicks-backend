@@ -20,13 +20,11 @@ public class UserSubscription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @ManyToOne
-    @JoinColumn(name = "plan_id")
-    private SubscriptionPlan plan;
+    @Column(name = "plan_id")
+    private Long planId;
 
     private String stripeSubscriptionId;
 
@@ -43,9 +41,9 @@ public class UserSubscription {
     private LocalDateTime updatedAt;
 
     // Constructors
-    public UserSubscription(User user, SubscriptionPlan plan, String stripeSubscriptionId, SubscriptionStatus status) {
-        this.user = user;
-        this.plan = plan;
+    public UserSubscription(Long userId, Long planId, String stripeSubscriptionId, SubscriptionStatus status) {
+        this.userId = userId;
+        this.planId = planId;
         this.stripeSubscriptionId = stripeSubscriptionId;
         this.status = status;
     }

@@ -1,6 +1,5 @@
 package com.stockpicks.backend.repository;
 
-import com.stockpicks.backend.entity.User;
 import com.stockpicks.backend.entity.UserSubscription;
 import com.stockpicks.backend.enums.SubscriptionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,12 +12,12 @@ import java.util.Optional;
 
 @Repository
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
-    List<UserSubscription> findByUser(User user);
-    Optional<UserSubscription> findByUserAndStatus(User user, SubscriptionStatus status);
-    List<UserSubscription> findByUserAndStatusOrderByUpdatedAtDesc(User user, SubscriptionStatus status);
+    List<UserSubscription> findByUserId(Long userId);
+    Optional<UserSubscription> findByUserIdAndStatus(Long userId, SubscriptionStatus status);
+    List<UserSubscription> findByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, SubscriptionStatus status);
     Optional<UserSubscription> findByStripeSubscriptionId(String stripeSubscriptionId);
-    boolean existsByUserAndStatus(User user, SubscriptionStatus status);
+    boolean existsByUserIdAndStatus(Long userId, SubscriptionStatus status);
     
-    @Query("SELECT us FROM UserSubscription us WHERE us.user = :user AND us.status = :status ORDER BY us.updatedAt DESC")
-    List<UserSubscription> findActiveSubscriptionsOrderedByUpdateTime(@Param("user") User user, @Param("status") SubscriptionStatus status);
+    @Query("SELECT us FROM UserSubscription us WHERE us.userId = :userId AND us.status = :status ORDER BY us.updatedAt DESC")
+    List<UserSubscription> findActiveSubscriptionsOrderedByUpdateTime(@Param("userId") Long userId, @Param("status") SubscriptionStatus status);
 }

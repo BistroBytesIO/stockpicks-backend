@@ -1,6 +1,7 @@
 package com.stockpicks.backend.service;
 
 import com.stockpicks.backend.dto.auth.RegisterRequest;
+import com.stockpicks.backend.dto.user.UserResponse;
 import com.stockpicks.backend.entity.User;
 import com.stockpicks.backend.entity.UserSubscription;
 import com.stockpicks.backend.enums.SubscriptionStatus;
@@ -51,29 +52,38 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::convertToUserResponse)
+                .collect(Collectors.toList());
     }
 
-    public List<User> getSubscribedUsers() {
-        List<UserSubscription> activeSubscriptions = userSubscriptionRepository
+    public List<UserResponse> getSubscribedUsers() {
+        List<Long> subscribedUserIds = userSubscriptionRepository
                 .findAll()
                 .stream()
                 .filter(sub -> sub.getStatus() == SubscriptionStatus.ACTIVE)
+                .map(UserSubscription::getUserId)
+                .distinct()
                 .collect(Collectors.toList());
 
-        return activeSubscriptions.stream()
-                .map(UserSubscription::getUser)
-                .distinct()
+        return userRepository.findAllById(subscribedUserIds).stream()
+                .map(this::convertToUserResponse)
                 .collect(Collectors.toList());
     }
 
-    public List<User> getNonSubscribedUsers() {
-        List<User> subscribedUsers = getSubscribedUsers();
-        List<User> allUsers = getAllUsers();
+    public List<UserResponse> getNonSubscribedUsers() {
+        List<Long> subscribedUserIds = userSubscriptionRepository
+                .findAll()
+                .stream()
+                .filter(sub -> sub.getStatus() == SubscriptionStatus.ACTIVE)
+                .map(UserSubscription::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
 
-        return allUsers.stream()
-                .filter(user -> !subscribedUsers.contains(user))
+        return userRepository.findAll().stream()
+                .filter(user -> !subscribedUserIds.contains(user.getId()))
+                .map(this::convertToUserResponse)
                 .collect(Collectors.toList());
     }
 
@@ -83,5 +93,17 @@ public class UserService {
 
     public long getActiveSubscribersCount() {
         return getSubscribedUsers().size();
+    }
+
+    private UserResponse convertToUserResponse(User user) {
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.getIsActive()
+        );
     }
 }

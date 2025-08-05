@@ -1,6 +1,5 @@
 package com.stockpicks.backend.repository;
 
-import com.stockpicks.backend.entity.Admin;
 import com.stockpicks.backend.entity.BlogPost;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,7 +10,7 @@ import java.util.List;
 @Repository
 public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
     List<BlogPost> findByIsPublishedTrueOrderByPublishedAtDesc();
-    List<BlogPost> findByAuthorOrderByCreatedAtDesc(Admin author);
+    List<BlogPost> findByAuthorIdOrderByCreatedAtDesc(Long authorId);
     List<BlogPost> findByCategoryOrderByCreatedAtDesc(String category);
     List<BlogPost> findAllByOrderByCreatedAtDesc();
     

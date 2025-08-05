@@ -42,7 +42,7 @@ public class SubscriptionService {
                 .orElseThrow(() -> new RuntimeException("Subscription plan not found"));
 
         // Check if user already has an active subscription
-        if (userSubscriptionRepository.existsByUserAndStatus(user, SubscriptionStatus.ACTIVE)) {
+        if (userSubscriptionRepository.existsByUserIdAndStatus(user.getId(), SubscriptionStatus.ACTIVE)) {
             throw new RuntimeException("User already has an active subscription");
         }
 
@@ -59,8 +59,8 @@ public class SubscriptionService {
 
         // Create user subscription record
         UserSubscription userSubscription = new UserSubscription();
-        userSubscription.setUser(user);
-        userSubscription.setPlan(plan);
+        userSubscription.setUserId(user.getId());
+        userSubscription.setPlanId(plan.getId());
         userSubscription.setStripeSubscriptionId(stripeSubscription.getId());
         userSubscription.setStatus(SubscriptionStatus.valueOf(stripeSubscription.getStatus().toUpperCase()));
         
@@ -81,7 +81,7 @@ public class SubscriptionService {
 
     public void cancelSubscription(String email) throws StripeException {
         User user = userService.findByEmail(email);
-        UserSubscription userSubscription = userSubscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+        UserSubscription userSubscription = userSubscriptionRepository.findByUserIdAndStatus(user.getId(), SubscriptionStatus.ACTIVE)
                 .orElseThrow(() -> new RuntimeException("No active subscription found"));
 
         // Cancel in Stripe
@@ -97,7 +97,7 @@ public class SubscriptionService {
         User user = userService.findByEmail(email);
         
         // Use the ordered query to get active subscriptions by most recent update
-        List<UserSubscription> activeSubscriptions = userSubscriptionRepository.findByUserAndStatusOrderByUpdatedAtDesc(user, SubscriptionStatus.ACTIVE);
+        List<UserSubscription> activeSubscriptions = userSubscriptionRepository.findByUserIdAndStatusOrderByUpdatedAtDesc(user.getId(), SubscriptionStatus.ACTIVE);
         
         if (activeSubscriptions.isEmpty()) {
             return null;
@@ -123,7 +123,7 @@ public class SubscriptionService {
 
     public boolean hasActiveSubscription(String email) {
         User user = userService.findByEmail(email);
-        return userSubscriptionRepository.existsByUserAndStatus(user, SubscriptionStatus.ACTIVE);
+        return userSubscriptionRepository.existsByUserIdAndStatus(user.getId(), SubscriptionStatus.ACTIVE);
     }
 
     public void updateSubscriptionStatus(String stripeSubscriptionId, SubscriptionStatus status) {
@@ -168,10 +168,10 @@ public class SubscriptionService {
         System.out.println("Found user: " + user.getEmail());
         
         // Check if user already has an active subscription to prevent duplicates
-        if (status == SubscriptionStatus.ACTIVE && userSubscriptionRepository.existsByUserAndStatus(user, SubscriptionStatus.ACTIVE)) {
+        if (status == SubscriptionStatus.ACTIVE && userSubscriptionRepository.existsByUserIdAndStatus(user.getId(), SubscriptionStatus.ACTIVE)) {
             System.out.println("User already has an active subscription, cancelling old active subscriptions");
             // Find and cancel existing active subscriptions to prevent duplicates
-            UserSubscription existingActive = userSubscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE).orElse(null);
+            UserSubscription existingActive = userSubscriptionRepository.findByUserIdAndStatus(user.getId(), SubscriptionStatus.ACTIVE).orElse(null);
             if (existingActive != null && !existingActive.getStripeSubscriptionId().equals(stripeSubscriptionId)) {
                 System.out.println("Cancelling existing active subscription: " + existingActive.getStripeSubscriptionId());
                 existingActive.setStatus(SubscriptionStatus.CANCELED);
@@ -190,8 +190,8 @@ public class SubscriptionService {
         
         // Create user subscription record
         UserSubscription userSubscription = new UserSubscription();
-        userSubscription.setUser(user);
-        userSubscription.setPlan(plan);
+        userSubscription.setUserId(user.getId());
+        userSubscription.setPlanId(plan.getId());
         userSubscription.setStripeSubscriptionId(stripeSubscription.getId());
         userSubscription.setStatus(status);
         

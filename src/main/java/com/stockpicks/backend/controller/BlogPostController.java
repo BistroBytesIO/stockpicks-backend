@@ -160,13 +160,29 @@ public class BlogPostController {
     }
 
     private BlogPostResponse convertToResponse(BlogPost post) {
+        // Get author information using authorId
+        String authorName = "Unknown Author";
+        String authorEmail = "unknown@example.com";
+        
+        try {
+            if (post.getAuthorId() != null) {
+                var author = adminService.findById(post.getAuthorId());
+                if (author.isPresent()) {
+                    authorName = author.get().getFirstName() + " " + author.get().getLastName();
+                    authorEmail = author.get().getEmail();
+                }
+            }
+        } catch (Exception e) {
+            // Use default values if author lookup fails
+        }
+        
         return new BlogPostResponse(
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
                 post.getSummary(),
-                post.getAuthor().getFirstName() + " " + post.getAuthor().getLastName(),
-                post.getAuthor().getEmail(),
+                authorName,
+                authorEmail,
                 post.getCategory(),
                 post.isPublished(),
                 post.getFeaturedImageUrl(),

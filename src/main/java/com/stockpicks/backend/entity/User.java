@@ -8,8 +8,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -37,9 +35,6 @@ public class User {
     private LocalDateTime updatedAt;
 
     private Boolean isActive = true;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<UserSubscription> subscriptions = new ArrayList<>();
 
     // Constructors
     public User(String email, String passwordHash, String firstName, String lastName) {

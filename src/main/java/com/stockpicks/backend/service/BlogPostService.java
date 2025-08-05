@@ -23,7 +23,7 @@ public class BlogPostService {
         Admin author = adminService.findByEmail(authorEmail)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-        BlogPost blogPost = new BlogPost(title, content, summary, author, category);
+        BlogPost blogPost = new BlogPost(title, content, summary, author.getId(), category);
         return blogPostRepository.save(blogPost);
     }
 
@@ -80,7 +80,7 @@ public class BlogPostService {
     public List<BlogPost> getBlogPostsByAuthor(String authorEmail) {
         Admin author = adminService.findByEmail(authorEmail)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
-        return blogPostRepository.findByAuthorOrderByCreatedAtDesc(author);
+        return blogPostRepository.findByAuthorIdOrderByCreatedAtDesc(author.getId());
     }
 
     public List<BlogPost> getBlogPostsByCategory(String category) {

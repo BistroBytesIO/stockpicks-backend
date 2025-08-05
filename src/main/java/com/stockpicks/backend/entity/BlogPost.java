@@ -28,9 +28,8 @@ public class BlogPost {
     @Column(columnDefinition = "TEXT")
     private String summary;
 
-    @ManyToOne
-    @JoinColumn(name = "author_id")
-    private Admin author;
+    @Column(name = "author_id")
+    private Long authorId;
 
     @Column(nullable = false)
     private String category;
@@ -51,11 +50,11 @@ public class BlogPost {
     private LocalDateTime publishedAt;
 
     // Constructor for creating blog post with basic info
-    public BlogPost(String title, String content, String summary, Admin author, String category) {
+    public BlogPost(String title, String content, String summary, Long authorId, String category) {
         this.title = title;
         this.content = content;
         this.summary = summary;
-        this.author = author;
+        this.authorId = authorId;
         this.category = category;
         this.isPublished = false;
     }
