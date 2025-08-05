@@ -64,7 +64,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/webhooks/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/plans").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/subscriptions/plans").permitAll()
                 .requestMatchers("/api/contact/message").permitAll()
                 .requestMatchers("/api/admin/register").permitAll()
                 .requestMatchers("/api/admin/login").permitAll()
