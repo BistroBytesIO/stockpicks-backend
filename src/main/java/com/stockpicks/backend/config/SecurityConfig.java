@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/blog/posts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/news/**").permitAll()
+                .requestMatchers("/api/market/**").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
