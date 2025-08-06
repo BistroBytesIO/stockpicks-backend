@@ -85,7 +85,9 @@ public class BlogPostController {
                     request.getContent(),
                     request.getSummary(),
                     authorEmail,
-                    request.getCategory()
+                    request.getCategory(),
+                    request.getTags(),
+                    request.getFeaturedImageUrl()
             );
 
             return ResponseEntity.ok(convertToResponse(post));

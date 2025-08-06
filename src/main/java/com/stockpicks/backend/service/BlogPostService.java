@@ -19,11 +19,13 @@ public class BlogPostService {
     @Autowired
     private AdminService adminService;
 
-    public BlogPost createBlogPost(String title, String content, String summary, String authorEmail, String category) {
+    public BlogPost createBlogPost(String title, String content, String summary, String authorEmail, String category, String tags, String featuredImageUrl) {
         Admin author = adminService.findByEmail(authorEmail)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
 
         BlogPost blogPost = new BlogPost(title, content, summary, author.getId(), category);
+        blogPost.setTags(tags);
+        blogPost.setFeaturedImageUrl(featuredImageUrl);
         return blogPostRepository.save(blogPost);
     }
 
