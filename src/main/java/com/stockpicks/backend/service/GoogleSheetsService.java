@@ -60,6 +60,9 @@ public class GoogleSheetsService {
     @Value("${google.sheets.sync.business.hours.end:18}")
     private int businessHoursEnd;
 
+    @Value("${google.service.account.json:}")
+    private String serviceAccountJson;
+
     @Autowired
     private StockPickRepository stockPickRepository;
 
@@ -67,10 +70,19 @@ public class GoogleSheetsService {
     private GoogleSheetsSyncRepository googleSheetsSyncRepository;
 
     private GoogleCredentials getCredentials() throws IOException {
+        // First try to load from environment variable (for production)
+        if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
+            logger.info("Loading Google Service Account credentials from environment variable");
+            return GoogleCredentials.fromStream(
+                    new java.io.ByteArrayInputStream(serviceAccountJson.getBytes())
+            ).createScoped(SCOPES);
+        }
+
+        // Fallback to resource file (for local development)
+        logger.info("Loading Google Service Account credentials from resource file");
         InputStream in = GoogleSheetsService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
-            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH + 
-                ". Please add your Google Service Account JSON file to src/main/resources/");
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH + ". Please add your Google Service Account JSON file to src/main/resources/ or set GOOGLE_SERVICE_ACCOUNT_JSON environment variable");
         }
         return GoogleCredentials.fromStream(in).createScoped(SCOPES);
     }
